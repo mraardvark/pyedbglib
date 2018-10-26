@@ -2,6 +2,9 @@
 pyedbglib is a collection of tools to talk to Microchip CMSIS-DAP based debuggers.
 Build it, install it, and use it with various application scripts to interact with xEDBG debuggers.
 
+## Disclaimer
+Most testing has been done using nEDBG, although in theory the same API works on all xEDBG variants. 
+
 ## TLDR
 Examples of how to install pyedbglib in development mode and lint are shown in the Makefile
 
