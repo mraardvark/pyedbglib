@@ -2,6 +2,29 @@
 pyedbglib is a collection of tools to talk to Microchip CMSIS-DAP based debuggers.
 Build it, install it, and use it with various application scripts to interact with xEDBG debuggers.
 
+## Example usage
+```python
+# Import a transport provider
+from pyedbglib.hidtransport.hidtransportfactory import hid_transport
+# Import a protocol driver
+from pyedbglib.protocols import housekeepingprotocol
+
+# Create transport
+transport = hid_transport()
+
+# Connect to transport
+transport.connect()
+
+# Create protocol, passing in transport object
+hk = housekeepingprotocol.Jtagice3HousekeepingProtocol(transport)
+        
+# Use protocol as you want
+hk.start_session()
+print("Version info:")
+print(hk.read_version_info())
+hk.end_session()
+```
+
 ## Disclaimer
 Most testing has been done using nEDBG, although in theory the same API works on all xEDBG variants. 
 
