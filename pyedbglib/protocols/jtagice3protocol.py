@@ -205,7 +205,7 @@ class Jtagice3Protocol(Jtagice3Command):
                 if self.supports_trailing_status and response[-1] == self.FAILURE_OK:
                     return_list = True, response[2:-1]
                 else:
-                    return_list = False, response[-1]
+                    return_list = False, [response[-1]]
             elif response[0] == self.PROTOCOL_FAILED:
                 return_list = False, [response[2]]
 

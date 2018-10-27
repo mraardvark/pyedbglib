@@ -46,7 +46,7 @@ def get_default_report_size(pid):
         {'pid': USB_TOOL_DEVICE_PRODUCT_ID_MEDBG, 'default_report_size': 64},
         # 5G
         {'pid': USB_TOOL_DEVICE_PRODUCT_ID_NEDBG_HID_MSD_DGI_CDC, 'default_report_size': 64},
-        {'pid': USB_TOOL_DEVICE_PRODUCT_ID_PICKIT4_HID, 'default_report_size': 64}]
+        {'pid': USB_TOOL_DEVICE_PRODUCT_ID_PICKIT4_HID, 'default_report_size': 64},
         {'pid': USB_TOOL_DEVICE_PRODUCT_ID_PICKIT4_HID_CDC, 'default_report_size': 64}]
 
     logger.debug("Looking up report size for pid 0x{:04X}".format(pid))
