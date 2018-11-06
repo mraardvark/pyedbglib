@@ -78,7 +78,7 @@ class Avr8Protocol(Jtagice3Protocol):
     AVR8_VARIANT_TINYOCD = 0x01  # //! tinyAVR or megaAVR with debugWIRE
     AVR8_VARIANT_MEGAOCD = 0x02  # //! megaAVR with JTAG
     AVR8_VARIANT_XMEGA = 0x03  # //! AVR XMEGA
-    AVR8_VARIANT_TINYX0Y = 0x05  # //! AVR TinyX and mega-0 (UPDI)
+    AVR8_VARIANT_TINYX = 0x05  # //! AVR TinyX and mega-0 (UPDI)
     AVR8_VARIANT_NONE = 0xFF  # //! No device
 
     AVR8_FUNC_NONE = 0x00  # //! Not configured
@@ -113,6 +113,7 @@ class Avr8Protocol(Jtagice3Protocol):
     AVR8_MEMTYPE_EEPROM_ATOMIC = 0xC4
     AVR8_MEMTYPE_USER_SIGNATURE = 0xC5
     AVR8_MEMTYPE_CALIBRATION_SIGNATURE = 0xC6
+    AVR8_MEMTYPE_SIB = 0xD3
 
     def __init__(self, transport):
         self.logger = logging.getLogger(__name__)
