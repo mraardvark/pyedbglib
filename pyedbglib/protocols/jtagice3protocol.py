@@ -43,6 +43,7 @@ class Jtagice3Command(AvrCommand):
     HANDLER_EDBG = 0x20
     HANDLER_COPROCESSOR = 0x21
     HANDLER_POWER = 0x22
+    HANDLER_SELFTEST = 0x81
 
     def __init__(self, transport, handler):
         super(Jtagice3Command, self).__init__(transport)
@@ -233,7 +234,7 @@ class Jtagice3Protocol(Jtagice3Command):
         :param value: value to set
         :return:
         """
-        self.set(context, offset, bytearray([value]))
+        self._set_protocol(context, offset, bytearray([value]))
 
     def set_le16(self, context, offset, value):
         """
@@ -242,7 +243,7 @@ class Jtagice3Protocol(Jtagice3Command):
         :param offset: offset address to set
         :param value: value to set
         """
-        self.set(context, offset, binary.pack_le16(value))
+        self._set_protocol(context, offset, binary.pack_le16(value))
 
     def set_le32(self, context, offset, value):
         """
@@ -251,21 +252,23 @@ class Jtagice3Protocol(Jtagice3Command):
         :param offset: offset address to set
         :param value: value to set
         """
-        self.set(context, offset, binary.pack_le32(value))
+        self._set_protocol(context, offset, binary.pack_le32(value))
 
-    def set(self, context, offset, data):
+    def _set_protocol(self, context, offset, data):
         """
         Generic function for setting parameters
         :param context: context (address) to set
         :param offset: offset address to set
-        :param data: value to set
+        :param data: values to set
         """
-        self.logger.debug("JTAGICE3::set {:d} byte(s) to context {:d} offset {:d}".format(len(data), context, offset))
+        self.logger.debug("JTAGICE3::set {:d} byte(s) to context {:d} offset {:d}".format(len(data),
+                                                                                          context,
+                                                                                          offset))
         resp = self.jtagice3_command_response(
             bytearray([self.CMD_SET, self.CMD_VERSION0, context, offset, len(data)]) + data)
-        status, data = self.peel_response(resp)
-        if not status:
-            msg = "Unable to SET (failure code 0x{:02X})".format(data[0])
+        resp_status, resp_data = self.peel_response(resp)
+        if not resp_status:
+            msg = "Unable to SET (failure code 0x{:02X})".format(resp_data[0])
             raise Exception(msg)
 
     def get_byte(self, context, offset):
@@ -275,7 +278,7 @@ class Jtagice3Protocol(Jtagice3Command):
         :param offset: offset address to set
         :return: value read
         """
-        data = self.get(context, offset, 1)
+        data = self._get_protocol(context, offset, 1)
         return data[0]
 
     def get_le16(self, context, offset):
@@ -285,7 +288,7 @@ class Jtagice3Protocol(Jtagice3Command):
         :param offset: offset address to set
         :return: value read
         """
-        data = self.get(context, offset, 2)
+        data = self._get_protocol(context, offset, 2)
         return binary.unpack_le16(data)
 
     def get_le32(self, context, offset):
@@ -295,10 +298,10 @@ class Jtagice3Protocol(Jtagice3Command):
         :param offset: offset address to set
         :return: value read
         """
-        data = self.get(context, offset, 4)
+        data = self._get_protocol(context, offset, 4)
         return binary.unpack_le32(data)
 
-    def get(self, context, offset, numbytes):
+    def _get_protocol(self, context, offset, numbytes):
         """
         Generic function to get a parameter
         :param context: context (address) to set
@@ -311,5 +314,5 @@ class Jtagice3Protocol(Jtagice3Command):
         status, data = self.peel_response(resp)
         if not status:
             msg = "Unable to GET (failure code 0x{:02X})".format(data[0])
-            raise IOError(msg)
+            raise Jtagice3ResponseError(msg, data)
         return data

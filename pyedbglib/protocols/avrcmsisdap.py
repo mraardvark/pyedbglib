@@ -3,8 +3,8 @@ CMSIS-DAP wrapper for AVR commands
 """
 import logging
 
-from .dapwrapper import DapWrapper
 from ..util import print_helpers
+from .cmsisdap import CmsisDapUnit
 
 
 class AvrCommandError(Exception):
@@ -14,7 +14,7 @@ class AvrCommandError(Exception):
     pass
 
 
-class AvrCommand(DapWrapper):
+class AvrCommand(CmsisDapUnit):
     """
     Wraps AVR command and responses
     """
@@ -27,7 +27,7 @@ class AvrCommand(DapWrapper):
 
     def __init__(self, transport, no_timeouts=False):
         self.no_timeouts = no_timeouts
-        super(AvrCommand, self).__init__(transport)
+        CmsisDapUnit.__init__(self, transport)
         self.ep_size = transport.get_report_size()
         self.logger = logging.getLogger(__name__)
         self.logger.addHandler(logging.NullHandler())
