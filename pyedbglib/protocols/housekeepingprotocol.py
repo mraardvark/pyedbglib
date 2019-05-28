@@ -4,6 +4,7 @@ Implements Housekeeping Protocol, a sub-protocol in the JTAGICE3 family of proto
 import logging
 
 from .jtagice3protocol import Jtagice3Protocol
+from .jtagice3protocol import Jtagice3ResponseError
 from ..util import binary
 
 
@@ -61,6 +62,10 @@ class Jtagice3HousekeepingProtocol(Jtagice3Protocol):
     HOUSEKEEPING_ANALOG_VTG_BUF = 0x01
     HOUSEKEEPING_ANALOG_VUSB = 0x02
     HOUSEKEEPING_TSUP_VOLTAGE = 0x20
+
+    # Special Abilities
+    HOUSEKEEPING_ABILITY_RESET_EXTENSION = 0x00
+    HOUSEKEEPING_ABILITY_12V_UPDI_ENABLE = 0x10
 
     def __init__(self, transport):
         super(Jtagice3HousekeepingProtocol, self).__init__(transport, Jtagice3Protocol.HANDLER_HOUSEKEEPING)
@@ -137,7 +142,7 @@ class Jtagice3HousekeepingProtocol(Jtagice3Protocol):
 
         try:
             versions['fire'] = self.get_byte(self.HOUSEKEEPING_CONTEXT_CONFIG, self.HOUSEKEEPING_CONFIG_FIRMWARE_IMAGE)
-        except IOError:
+        except Jtagice3ResponseError:
             versions['fire'] = None
 
         return versions

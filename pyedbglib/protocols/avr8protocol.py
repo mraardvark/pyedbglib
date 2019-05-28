@@ -2,8 +2,9 @@
 Implements Avr8 Protocol, a sub-protocol in the JTAGICE3 family of protocols.
 """
 import logging
-from pyedbglib.protocols.jtagice3protocol import Jtagice3Protocol
-from pyedbglib.util import binary
+from .jtagice3protocol import Jtagice3Protocol
+from .avr8protocolerrors import AVR8_ERRORS
+from ..util import binary
 
 
 class Avr8Protocol(Jtagice3Protocol):
@@ -47,6 +48,8 @@ class Avr8Protocol(Jtagice3Protocol):
     RSP_AVR8_PC = 0x83  # //! PC value returned
     RSP_AVR8_FAILED = 0xA0  # //! Command failed to execute
 
+    AVR8_FAILURE_INVALID_PHYSICAL_STATE = 0x31
+
     EVT_AVR8_BREAK = 0x40
     EVT_AVR8_IDR = 0x41
 
@@ -73,12 +76,13 @@ class Avr8Protocol(Jtagice3Protocol):
     AVR8_OPT_POLL_INT = 0x04  # //! Configure polling speed
     AVR8_OPT_POWER_NAP = 0x05  # //! Use Power Nap
     AVR8_OPT_12V_UPDI_ENABLE = 0x06  # //! Enable UPDI using 12V
+    AVR8_OPT_CHIP_ERASE_TO_ENTER = 0x07  # //! Use CHIP ERASE KEY when next entering programming mode
 
     AVR8_VARIANT_LOOPBACK = 0x00  # //! Dummy device
     AVR8_VARIANT_TINYOCD = 0x01  # //! tinyAVR or megaAVR with debugWIRE
     AVR8_VARIANT_MEGAOCD = 0x02  # //! megaAVR with JTAG
     AVR8_VARIANT_XMEGA = 0x03  # //! AVR XMEGA
-    AVR8_VARIANT_TINYX = 0x05  # //! AVR TinyX and mega-0 (UPDI)
+    AVR8_VARIANT_TINYX = 0x05  # //! New AVR devices have UPDI interface
     AVR8_VARIANT_NONE = 0xFF  # //! No device
 
     AVR8_FUNC_NONE = 0x00  # //! Not configured
@@ -115,6 +119,15 @@ class Avr8Protocol(Jtagice3Protocol):
     AVR8_MEMTYPE_CALIBRATION_SIGNATURE = 0xC6
     AVR8_MEMTYPE_SIB = 0xD3
 
+    ERASE_CHIP = 0x00
+    ERASE_APP = 0x01
+    ERASE_BOOT = 0x02
+    ERASE_EEPROM = 0x03
+    ERASE_APP_PAGE = 0x04
+    ERASE_BOOT_PAGE = 0x05
+    ERASE_EEPROM_PAGE = 0x06
+    ERASE_USERSIG = 0x07
+
     def __init__(self, transport):
         self.logger = logging.getLogger(__name__)
         super(Avr8Protocol, self).__init__(
@@ -125,7 +138,6 @@ class Avr8Protocol(Jtagice3Protocol):
         Get the response error as a string (error code translated to descriptive string)
         :return: error code as descriptive string
         """
-        from pyedbglib.protocols.avr8protocolerrors import AVR8_ERRORS
         return AVR8_ERRORS[code]
 
     # Configuration shortcuts for AVR8 target types
@@ -156,15 +168,15 @@ class Avr8Protocol(Jtagice3Protocol):
         Write device info into the device context
         :param data: device data content
         """
-        self.set(self.AVR8_CTXT_DEVICE, 0x00, data)
+        self._set_protocol(self.AVR8_CTXT_DEVICE, 0x00, data)
 
     def configure_daisy_chain(self, settings):
         """
         Sets the daisy-chain fields in the physical context
         :param settings: array of daisy-chain info
         """
-        self.set(self.AVR8_CTXT_PHYSICAL, self.AVR8_PHY_JTAG_DAISY,
-                 [0x04, settings[0], settings[1], settings[2], settings[3]])
+        self._set_protocol(self.AVR8_CTXT_PHYSICAL, self.AVR8_PHY_JTAG_DAISY,
+                           [0x04, settings[0], settings[1], settings[2], settings[3]])
 
     # Physical / connection commands
     def activate_physical(self, use_reset=False):
@@ -173,21 +185,21 @@ class Avr8Protocol(Jtagice3Protocol):
         :param use_reset: reset
         :return:
         """
-        self.logger.info("Activate physical")
+        self.logger.debug("Activate physical")
         # try:
         device_id = self.check_response(self.jtagice3_command_response(
             bytearray([self.CMD_AVR8_ACTIVATE_PHYSICAL, self.CMD_VERSION0, int(use_reset)])))
 
         # No ID returned is also ok (some interfaces are just not clever enough)
         if not device_id:
-            self.logger.info("ID=%02X%02X%02X%02X", device_id[3], device_id[2], device_id[1], device_id[0])
+            self.logger.debug("ID=%02X%02X%02X%02X", device_id[3], device_id[2], device_id[1], device_id[0])
         return device_id
 
     def deactivate_physical(self):
         """
         Deactivates the physical interface
         """
-        self.logger.info("Deactivate physical")
+        self.logger.debug("Deactivate physical")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_DEACTIVATE_PHYSICAL,
                                                                       self.CMD_VERSION0])))
 
@@ -196,7 +208,7 @@ class Avr8Protocol(Jtagice3Protocol):
         """
         Enters programming mode
         """
-        self.logger.info("Enter prog mode")
+        self.logger.debug("Enter prog mode")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_PROG_MODE_ENTER,
                                                                       self.CMD_VERSION0])))
 
@@ -204,7 +216,7 @@ class Avr8Protocol(Jtagice3Protocol):
         """
         Exits programming mode
         """
-        self.logger.info("Leave prog mode")
+        self.logger.debug("Leave prog mode")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_PROG_MODE_LEAVE,
                                                                       self.CMD_VERSION0])))
 
@@ -213,7 +225,7 @@ class Avr8Protocol(Jtagice3Protocol):
         Reads the device ID
         :return: device ID
         """
-        self.logger.info("%s::get ID", self.__class__.__name__)
+        self.logger.debug("%s::get ID", self.__class__.__name__)
         return self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_GET_ID, self.CMD_VERSION0])))
 
     # Debug mode entry / exit commands
@@ -222,7 +234,7 @@ class Avr8Protocol(Jtagice3Protocol):
         Attaches the debugger to the target
         :param do_break: break execution on attach?
         """
-        self.logger.info("Attach")
+        self.logger.debug("Attach")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_ATTACH, self.CMD_VERSION0,
                                                                       int(do_break)])))
 
@@ -230,10 +242,11 @@ class Avr8Protocol(Jtagice3Protocol):
         """
         Detaches the debugger from the target
         """
-        self.logger.info("Detach")
+        self.logger.debug("Detach")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_DETACH, self.CMD_VERSION0])))
 
     # General memory access commands
+
     def erase(self, mode=0, address=0):
         """
         Erase target flash
@@ -251,7 +264,7 @@ class Avr8Protocol(Jtagice3Protocol):
         :param num_bytes: number of bytes
         :return: memory read
         """
-        self.logger.info("Reading memory...")
+        self.logger.debug("Reading memory...")
         return self.check_response(self.jtagice3_command_response(
             bytearray([self.CMD_AVR8_MEMORY_READ, self.CMD_VERSION0, memtype]) +
             binary.pack_le32(address) + binary.pack_le32(num_bytes)))
@@ -269,11 +282,12 @@ class Avr8Protocol(Jtagice3Protocol):
                 address) + binary.pack_le32(len(data)) + bytearray([0x00]) + data))
 
     # Debugging flow-control functions
+
     def reset(self):
         """
         Resets the core and holds it in reset
         """
-        self.logger.info("AVR core reset")
+        self.logger.debug("AVR core reset")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_RESET, self.CMD_VERSION0, 0x01])))
 
     def step(self):
@@ -281,7 +295,7 @@ class Avr8Protocol(Jtagice3Protocol):
         Executes a single-step on the core.  A BREAK even will be generated when it has completed.
         This behaviour originates from previous debuggers which could do C level stepping which took time.
         """
-        self.logger.info("AVR core step")
+        self.logger.debug("AVR core step")
         self.check_response(
             self.jtagice3_command_response(bytearray([self.CMD_AVR8_STEP, self.CMD_VERSION0, 0x01, 0x01])))
 
@@ -289,14 +303,14 @@ class Avr8Protocol(Jtagice3Protocol):
         """
         Requests a core halt.  A BREAK even will be generated when it has successfully stopped.
         """
-        self.logger.info("AVR core halt request")
+        self.logger.debug("AVR core halt request")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_STOP, self.CMD_VERSION0, 0x01])))
 
     def run(self):
         """
         Resumes core execution
         """
-        self.logger.info("AVR core resume")
+        self.logger.debug("AVR core resume")
         self.check_response(self.jtagice3_command_response(bytearray([self.CMD_AVR8_RUN, self.CMD_VERSION0])))
 
     def run_to(self, address):
@@ -304,11 +318,12 @@ class Avr8Protocol(Jtagice3Protocol):
         Runs to the given address.  A BREAK event will be generated when/if it reaches the address.
         :param address:
         """
-        self.logger.info("AVR core run to address")
+        self.logger.debug("AVR core run to address")
         self.check_response(self.jtagice3_command_response(
             bytearray([self.CMD_AVR8_RUN_TO_ADDRESS, self.CMD_VERSION0]) + binary.pack_le32(address)))
 
     # Debug memory access functions
+
     def program_counter_read(self):
         """
         Reads out the program counter
@@ -317,7 +332,7 @@ class Avr8Protocol(Jtagice3Protocol):
         program_counter = binary.unpack_le32(self.check_response(
             self.jtagice3_command_response(bytearray([self.CMD_AVR8_PC_READ, self.CMD_VERSION0])), self.RSP_AVR8_PC))
         msg = "PC read as 0x{:08X}".format(program_counter)
-        self.logger.info(msg)
+        self.logger.debug(msg)
         return program_counter
 
     def program_counter_write(self, program_counter):
@@ -333,9 +348,9 @@ class Avr8Protocol(Jtagice3Protocol):
         Reads out the AVR register file (R0::R31)
         :return:
         """
-        self.logger.info("Reading register file")
+        self.logger.debug("Reading register file")
         data = self.memory_read(self.AVR8_MEMTYPE_REGFILE, 0, 32)
-        self.logger.info(data)
+        self.logger.debug(data)
         return data
 
     def regfile_write(self, data):
@@ -346,16 +361,17 @@ class Avr8Protocol(Jtagice3Protocol):
         """
         if len(data) != 32:
             raise Exception("Invalid data length for regfile")
-        self.logger.info("Writing register file")
+        self.logger.debug("Writing register file")
         return self.memory_write(self.AVR8_MEMTYPE_REGFILE, 0, data)
 
     # Software breakpoint functions
+
     def software_breakpoint_set(self, address):
         """
         Insert a software breakpoint at the given address
         :param address: breakpoint address
         """
-        self.logger.info("Set SWBP")
+        self.logger.debug("Set SWBP")
         self.check_response(self.jtagice3_command_response(
             bytearray([self.CMD_AVR8_SW_BREAK_SET, self.CMD_VERSION0]) + binary.pack_le32(address)))
 
@@ -364,7 +380,7 @@ class Avr8Protocol(Jtagice3Protocol):
         Removes a software breakpoint from the given address
         :param address: breakpoint address
         """
-        self.logger.info("Clear SWBP")
+        self.logger.debug("Clear SWBP")
         self.check_response(self.jtagice3_command_response(
             bytearray([self.CMD_AVR8_SW_BREAK_CLEAR, self.CMD_VERSION0]) + binary.pack_le32(address)))
 
@@ -372,6 +388,6 @@ class Avr8Protocol(Jtagice3Protocol):
         """
         Clears all software breakpoints
         """
-        self.logger.info("SWBP clear all")
+        self.logger.debug("SWBP clear all")
         self.check_response(
             self.jtagice3_command_response(bytearray([self.CMD_AVR8_SW_BREAK_CLEAR_ALL, self.CMD_VERSION0])))
