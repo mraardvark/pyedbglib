@@ -5,6 +5,9 @@ Build it, install it, and use it with various application scripts to interact wi
 A python stack based on:
 [EDBG-based Tools Protocols User's Guide](http://ww1.microchip.com/downloads/en/DeviceDoc/50002630A.pdf)
 
+## PyPi wheel
+https://pypi.org/project/pyedbglib/
+
 ## Example usage
 ```python
 # Import a transport provider
