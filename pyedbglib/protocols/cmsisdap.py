@@ -1,18 +1,20 @@
 """
 CMSIS DAP access protocol
+
 Interfaces with CMSIS-DAP standard debuggers over HID
 """
-import logging
+
 import time
+from logging import getLogger
 
 from .dapwrapper import DapWrapper
 from ..util import binary
+from ..pyedbglib_errors import PyedbglibError
 
 
 class CmsisDapUnit(DapWrapper):
-    """
-    Communicates with a DAP via standard CMSIS-DAP firmware stack over HID transport
-    """
+    """Communicates with a DAP via standard CMSIS-DAP firmware stack over HID transport"""
+
     # DAP command constants
     ID_DAP_Info = 0x00
     ID_DAP_HostStatus = 0x01
@@ -55,23 +57,22 @@ class CmsisDapUnit(DapWrapper):
     DAP_PORT_JTAG = 2
 
     def __init__(self, transport):
-        self.logger = logging.getLogger(__name__)
+        self.logger = getLogger(__name__)
         DapWrapper.__init__(self, transport)
 
     def _check_response(self, cmd, rsp):
         """
         Checks that the response echoes the command
+
         :param cmd: command going in
         :param rsp: response coming out
         """
         self.logger.debug("Checking response: cmd=0x%02X rsp=0x%02X", cmd[0], rsp[0])
         if cmd[0] != rsp[0]:
-            raise Exception("Invalid response header")
+            raise PyedbglibError("Invalid response header")
 
     def dap_info(self):
-        """
-        Collects the dap info
-        """
+        """Collects the dap info"""
         info = {
             'vendor': self._dap_info_field(self.DAP_ID_VENDOR),
             'product': self._dap_info_field(self.DAP_ID_PRODUCT),
@@ -86,6 +87,7 @@ class CmsisDapUnit(DapWrapper):
     def _dap_info_field(self, field):
         """
         Queries one field from the dap info
+
         :param field: which field to query
         """
         self.logger.debug("dap_info (%d)", field)
@@ -99,6 +101,7 @@ class CmsisDapUnit(DapWrapper):
     def dap_led(self, index, state):
         """
         Operates the LED
+
         :param index: which led
         :param state: what to do with it
         :return:
@@ -112,9 +115,7 @@ class CmsisDapUnit(DapWrapper):
         self._check_response(cmd, rsp)
 
     def dap_connect(self):
-        """
-        Connects to the DAP
-        """
+        """Connects to the DAP"""
         self.logger.debug("dap_connect (SWD)")
         cmd = bytearray(2)
         cmd[0] = self.ID_DAP_Connect
@@ -122,12 +123,10 @@ class CmsisDapUnit(DapWrapper):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_PORT_SWD:
-            raise Exception("Connect failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("Connect failed (0x{0:02X})".format(rsp[1]))
 
     def dap_disconnect(self):
-        """
-        Disconnects from the DAP
-        """
+        """Disconnects from the DAP"""
         self.logger.debug("dap_disconnect")
         cmd = bytearray(1)
         cmd[0] = self.ID_DAP_Disconnect
@@ -136,9 +135,8 @@ class CmsisDapUnit(DapWrapper):
 
 
 class CmsisDapDebugger(CmsisDapUnit):
-    """
-    ARM-specific cmsis-dap implementation
-    """
+    """ARM-specific cmsis-dap implementation"""
+
     # SWJ pin IDs
     DAP_SWJ_SWCLK_TCK = (1 << 0)
     DAP_SWJ_SWDIO_TMS = (1 << 1)
@@ -214,12 +212,13 @@ class CmsisDapDebugger(CmsisDapUnit):
     CM0P_DAPID = 0x0BC11477
 
     def __init__(self, transport):
-        self.logger = logging.getLogger(__name__)
+        self.logger = getLogger(__name__)
         CmsisDapUnit.__init__(self, transport)
 
     def dap_swj_clock(self, clock):
         """
         Sets up the SWD clock timing
+
         :param clock: clock value in Hz
         """
         self.logger.debug("dap_swj_clk (%d)", clock)
@@ -229,11 +228,12 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("SWJ clock setting failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("SWJ clock setting failed (0x{0:02X})".format(rsp[1]))
 
     def dap_transfer_configure(self, idle, count, retry):
         """
         Configures SWD transfers
+
         :param idle: idle cycles
         :param count: retry count
         :param retry: match retry value
@@ -248,11 +248,12 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("Transfer configure failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("Transfer configure failed (0x{0:02X})".format(rsp[1]))
 
     def dap_swd_configure(self, cfg):
         """
         Configures the SWD interface
+
         :param cfg: turnaround and data phase config parameters
         """
         self.logger.debug("dap_swd_configure (%d)", cfg)
@@ -262,23 +263,22 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("SWD configure failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("SWD configure failed (0x{0:02X})".format(rsp[1]))
 
     def dap_reset_target(self):
-        """
-        Reset the target using the DAP
-        """
+        """Reset the target using the DAP"""
         self.logger.debug("dap_reset_target")
         cmd = bytearray(1)
         cmd[0] = self.ID_DAP_ResetTarget
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("Reset target failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("Reset target failed (0x{0:02X})".format(rsp[1]))
 
     def dap_read_reg(self, reg):
         """
         Reads a DAP AP/DP register
+
         :param reg: register to read
         """
         self.logger.debug("dap_read_reg (0x%02X)", reg)
@@ -290,13 +290,14 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != 1 or rsp[2] != self.DAP_TRANSFER_OK:
-            raise Exception("Read reg failed (0x{0:02X}, {1:02X})".format(rsp[1], rsp[2]))
+            raise PyedbglibError("Read reg failed (0x{0:02X}, {1:02X})".format(rsp[1], rsp[2]))
         value = binary.unpack_le32(rsp[3:7])
         return value
 
     def dap_write_reg(self, reg, value):
         """
         Writes a DAP AP/DP register
+
         :param reg: register to write
         :param value: value to write
         """
@@ -310,11 +311,12 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != 1 or rsp[2] != self.DAP_TRANSFER_OK:
-            raise Exception("Write reg failed (0x{0:02X}, {1:02X})".format(rsp[1], rsp[2]))
+            raise PyedbglibError("Write reg failed (0x{0:02X}, {1:02X})".format(rsp[1], rsp[2]))
 
     def read_word(self, address):
         """
         Reads a word from the device memory bus
+
         :param address: address to read
         """
         self.logger.debug("read word at 0x%08X", address)
@@ -324,6 +326,7 @@ class CmsisDapDebugger(CmsisDapUnit):
     def write_word(self, address, data):
         """
         Writes a word to the device memory bus
+
         :param address: address to write
         :param data: data to write
         """
@@ -339,6 +342,7 @@ class CmsisDapDebugger(CmsisDapUnit):
     def read_block(self, address, numbytes):
         """
         Reads a block from the device memory bus
+
         :param address: byte address
         :param numbytes: number of bytes
         """
@@ -379,14 +383,14 @@ class CmsisDapDebugger(CmsisDapUnit):
 
             # Check outcome
             if rsp[3] != self.DAP_TRANSFER_OK:
-                raise Exception("Transfer failed (0x{0:02X})".format(rsp[1]))
+                raise PyedbglibError("Transfer failed (0x{0:02X}) address 0x{1:08X}".format(rsp[3], address))
 
             # Extract payload
             num_words_read = binary.unpack_le16(rsp[1:3])
 
             # Check
             if num_words_read * 4 != read_size_bytes:
-                raise Exception(
+                raise PyedbglibError(
                     "Unexpected number of bytes returned from block read ({0:d} != {1:d})".format(num_words_read * 4,
                                                                                                   read_size_bytes))
 
@@ -400,6 +404,7 @@ class CmsisDapDebugger(CmsisDapUnit):
     def write_block(self, address, data):
         """
         Writes a block to the device memory bus
+
         :param address: byte address
         :param data: data
         """
@@ -443,12 +448,10 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("SWJ sequence failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("SWJ sequence failed (0x{0:02X})".format(rsp[1]))
 
     def init_swj(self):
-        """
-        Magic sequence to execute on pins to enable SWD in case of JTAG-default parts
-        """
+        """Magic sequence to execute on pins to enable SWD in case of JTAG-default parts"""
         self.logger.debug("SWJ init sequence")
         # According to ARM manuals:
         # Send at least 50 cycles with TMS=1
@@ -462,7 +465,7 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("SWJ sequence failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("SWJ sequence failed (0x{0:02X})".format(rsp[1]))
 
         # Flush TMS again
         self._send_flush_tms()
@@ -475,24 +478,20 @@ class CmsisDapDebugger(CmsisDapUnit):
         rsp = self.dap_command_response(cmd)
         self._check_response(cmd, rsp)
         if rsp[1] != self.DAP_OK:
-            raise Exception("SWJ sequence failed (0x{0:02X})".format(rsp[1]))
+            raise PyedbglibError("SWJ sequence failed (0x{0:02X})".format(rsp[1]))
 
         # Now read the ID to check that it has switched
         dap_id = self.dap_read_idcode()
         if dap_id != self.CM0P_DAPID:
-            raise Exception("Invalid SWD DAP ID code! Only M0+ is currently supported.")
+            raise PyedbglibError("Invalid SWD DAP ID code! Only M0+ is currently supported.")
 
     def dap_read_idcode(self):
-        """
-        Reads the IDCODE from the SWD DP
-        """
+        """Reads the IDCODE from the SWD DP"""
         self.logger.debug("reading swd idcode")
         return self.dap_read_reg(self.DP_IDCODE)
 
     def dap_target_init(self):
-        """
-        Configures the DAP for use
-        """
+        """Configures the DAP for use"""
         self.logger.debug("dap_target_init")
         # Clear all stickies
         self.dap_write_reg(self.DP_ABORT, self.STICKYERR | self.STICKYCMP | self.STICKYORUN)
@@ -505,16 +504,17 @@ class CmsisDapDebugger(CmsisDapUnit):
 
 
 class CmsisDapSamDebugger(CmsisDapDebugger):
-    """
-    Some SAM devices (for example SAMDx and SAMLx) have an additional 'reset extension' capability which is not part of
-    the CMSIS-DAP standard.  It is used to prevent the device from running after reset and then overriding its SWD IO.
-    The procedure is simply to hold SW_CLK low while releasing /RESET.  This is done here using SWJ pins function IF the
-    extend argument is set.
-    """
+    """SAM specific CMSIS-DAP debugger"""
 
     def dap_reset_ext(self, extend=False):
         """
         Reset the target using the hardware
+
+        Some SAM devices (for example SAMDx and SAMLx) have an additional 'reset extension' capability which is not part
+        of the CMSIS-DAP standard.  It is used to prevent the device from running after reset and then overriding its
+        SWD IO.  The procedure is simply to hold SW_CLK low while releasing /RESET.  This is done here using SWJ pins
+        function IF the extend argument is set.
+
         :param extend: boolean flag to extend reset
         """
         self.logger.debug("dap_reset_ext")
