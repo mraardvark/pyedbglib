@@ -20,8 +20,6 @@ The following Atmel/Microchip debuggers are supported:
 * PKOB nano (nEDBG)
 * MPLAB PICkit 4 In-Circuit Debugger (only when in 'AVR mode')
 * MPLAB Snap In-Circuit Debugger (only when in 'AVR mode')
-* MPLAB ICD 4 In-Circuit Debugger (only when in 'AVR mode')
-* MPLAB ICE 4 In-Circuit Debugger (only when in 'AVR mode')
 
 Not all debuggers support all protocols or functions within them.
 
@@ -89,8 +87,4 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2175", MODE="0666"
 SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2177", MODE="0666"
 # MPLAB Snap In-Circuit Debugger
 SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2180", MODE="0666"
-# MPLAB ICD 4 In-Circuit Debugger
-SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="217C", MODE="0666"
-# MPLAB ICE 4 In-Circuit Debugger
-SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2193", MODE="0666"
 ```

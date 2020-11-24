@@ -20,8 +20,6 @@ USB_TOOL_DEVICE_PRODUCT_ID_MEDBG = 0x2145
 USB_TOOL_DEVICE_PRODUCT_ID_NEDBG_HID_MSD_DGI_CDC = 0x2175
 USB_TOOL_DEVICE_PRODUCT_ID_PICKIT4_HID_CDC = 0x2177
 USB_TOOL_DEVICE_PRODUCT_ID_SNAP_HID_CDC = 0x2180
-USB_TOOL_DEVICE_PRODUCT_ID_ICD4_HID_CDC = 0x217C
-USB_TOOL_DEVICE_PRODUCT_ID_ICE4_HID_CDC = 0x2193
 
 
 # The Product String Names are used to identify the tool based on the USB
@@ -35,9 +33,7 @@ TOOL_SHORTNAME_TO_USB_PRODUCT_STRING = {
     'nedbg': "nEDBG",
     'jtagice3': "JTAGICE3",
     'medbg': "mEDBG",
-    'edbg': "EDBG",
-    'icd4': "MPLAB ICD 4",
-    'ice4': "MPLAB ICE 4"
+    'edbg': "EDBG"
 }
 
 def get_default_report_size(pid):
@@ -59,9 +55,7 @@ def get_default_report_size(pid):
         # 5G
         {'pid': USB_TOOL_DEVICE_PRODUCT_ID_NEDBG_HID_MSD_DGI_CDC, 'default_report_size': 64},
         {'pid': USB_TOOL_DEVICE_PRODUCT_ID_PICKIT4_HID_CDC, 'default_report_size': 64},
-        {'pid': USB_TOOL_DEVICE_PRODUCT_ID_SNAP_HID_CDC, 'default_report_size': 64},
-        {'pid': USB_TOOL_DEVICE_PRODUCT_ID_ICD4_HID_CDC, 'default_report_size': 64},
-        {'pid': USB_TOOL_DEVICE_PRODUCT_ID_ICE4_HID_CDC, 'default_report_size': 64}]
+        {'pid': USB_TOOL_DEVICE_PRODUCT_ID_SNAP_HID_CDC, 'default_report_size': 64}]
 
     logger.debug("Looking up report size for pid 0x{:04X}".format(pid))
     for tool in hid_tools:
