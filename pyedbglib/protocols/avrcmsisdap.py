@@ -1,8 +1,11 @@
 """
-CMSIS-DAP wrapper for AVR commands
+CMSIS-DAP wrapper for custom commands (using vendor extensions)
+This mechanism is used to pass JTAGICE3-style commands for AVR devices
+over the CMSIS-DAP interface
 """
-import logging
-
+import time
+from logging import getLogger
+from ..util.binary import unpack_be16
 from ..util import print_helpers
 from .cmsisdap import CmsisDapUnit
 
@@ -18,6 +21,7 @@ class AvrCommand(CmsisDapUnit):
     """
     Wraps AVR command and responses
     """
+
     # Vendor Commands used to transport AVR over CMSIS-DAP
     AVR_COMMAND = 0x80
     AVR_RESPONSE = 0x81
@@ -25,17 +29,21 @@ class AvrCommand(CmsisDapUnit):
     AVR_MORE_FRAGMENTS = 0x00
     AVR_FINAL_FRAGMENT = 0x01
 
+    # Retry delay on AVR receive frame
+    AVR_RETRY_DELAY_MS = 50
+
     def __init__(self, transport, no_timeouts=False):
         self.no_timeouts = no_timeouts
+        self.timeout = 1000
         CmsisDapUnit.__init__(self, transport)
         self.ep_size = transport.get_report_size()
-        self.logger = logging.getLogger(__name__)
-        self.logger.addHandler(logging.NullHandler())
+        self.logger = getLogger(__name__)
         self.logger.debug("Created AVR command on DAP wrapper")
 
     def poll_events(self):
         """
         Polling for events from AVRs
+
         :return: response from events
         """
         self.logger.debug("Polling AVR events")
@@ -43,15 +51,22 @@ class AvrCommand(CmsisDapUnit):
         return resp
 
     def _avr_response_receive_frame(self):
-        while True:
+        retries = int(self.timeout / self.AVR_RETRY_DELAY_MS)
+        # Get the delay in seconds
+        delay = self.AVR_RETRY_DELAY_MS / 1000
+        while retries or self.no_timeouts:
             resp = self.dap_command_response(bytearray([self.AVR_RESPONSE]))
             if resp[0] != self.AVR_RESPONSE:
                 # Response received is not valid.  Abort.
                 raise AvrCommandError("AVR response DAP command failed; invalid token: 0x{:02X}".format(resp[0]))
             if resp[1] != 0x00:
                 return resp
-
             self.logger.debug("Resp: %s", print_helpers.bytelist_to_hex_string(resp))
+
+            # Delay in seconds
+            time.sleep(delay)
+            retries -= 1
+        raise AvrCommandError("AVR response timeout")
 
     # Chops command up into fragments
     def _fragment_command_packet(self, command_packet):
@@ -81,6 +96,7 @@ class AvrCommand(CmsisDapUnit):
     def avr_command_response(self, command):
         """
         Sends an AVR command and receives a response
+
         :param command: Command bytes to send
         :return: Response bytes received
         """
@@ -110,10 +126,16 @@ class AvrCommand(CmsisDapUnit):
 
     def _avr_response_receive_fragment(self):
         fragment = []
-        # Receive
+        # Receive a frame
         response = self._avr_response_receive_frame()
-        # Size check
-        size = (response[2] << 8) + response[3]
+
+        # Get the payload size from the header information
+        size = unpack_be16(response[2:4])
+
+        # The message header is 4 bytes, where the last two hold the size of the payload
+        if len(response) < (4 + size):
+            raise AvrCommandError("Response size does not match the header information.")
+
         # Extract data
         for i in range(0, size):
             fragment.append(response[4 + i])

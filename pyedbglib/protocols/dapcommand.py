@@ -1,7 +1,6 @@
-"""
-DAP information wrapper for any CMSIS-DAP tool
-"""
-import logging
+"""DAP information wrapper for any CMSIS-DAP tool"""
+
+from logging import getLogger
 from .dapwrapper import DapWrapper
 
 ID_DAP_INFO = 0x00
@@ -18,19 +17,17 @@ DAP_ID_PACKET_SIZE = 0xFF
 
 
 class DapCommand(DapWrapper):
-    """
-    DAP information wrapper for any CMSIS-DAP tool
-    """
+    """DAP information wrapper for any CMSIS-DAP tool"""
 
     def __init__(self, transport):
         super(DapCommand, self).__init__(transport)
-        self.logger = logging.getLogger(__name__)
-        self.logger.addHandler(logging.NullHandler())
+        self.logger = getLogger(__name__)
         self.logger.debug("Created DAP command wrapper")
 
     def get_all_info(self):
         """
         Fetches a set of useful information from the DAP
+
         :return: dictionary of parameters
         """
         dapinfo = {'vendor': str(self.info(DAP_ID_VENDOR)),
@@ -47,6 +44,7 @@ class DapCommand(DapWrapper):
     def info(self, dap_id):
         """
         Fetch specific DAP information given by dap_id
+
         :param dap_id: code for different DAP_ID_* fields
         :return: bytearray with dap information
         """

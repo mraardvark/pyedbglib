@@ -1,7 +1,4 @@
-"""
-Generating string representations of variables for nice printouts
-"""
-
+"""Generating string representations of variables for nice printouts"""
 
 def bytelist_to_hex_string(bytelist):
     """

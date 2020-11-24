@@ -1,7 +1,6 @@
-"""
-Packing and unpacking numbers into bytearrays of 8-bit values with different endian.
-"""
+"""Packing and unpacking numbers into bytearrays of 8-bit values with various endian encodings"""
 
+from numbers import Integral
 
 def _check_input_value(value, bits):
     """
@@ -9,8 +8,9 @@ def _check_input_value(value, bits):
     :param bits: Number of bits used to represent this integer
     :return: Raises an OverflowError if the value is too large
     """
-    if not isinstance(value, int):
-        raise TypeError("The input {} is not an integer".format(value))
+    # Be sure to support both py2 and py3
+    if not isinstance(value, Integral):
+        raise TypeError("The input {} is not an Integral type".format(value))
 
     if value > (2 ** bits) - 1:
         raise OverflowError("Value {} is larger than the maximum value {}".format(value, (2 ** bits) - 1))
@@ -34,6 +34,27 @@ def pack_be32(value):
     return bytearray(
         [(value >> 24) & 0xFF,
          (value >> 16) & 0xFF,
+         (value >> 8) & 0xFF,
+         value & 0xFF])
+
+
+def pack_le24(value):
+    """
+    :param value: input value
+    :return: 24-bit little endian bytearray representation of the input value
+    """
+    _check_input_value(value, 24)
+    return bytearray([value & 0xFF, (value >> 8) & 0xFF, (value >> 16) & 0xFF])
+
+
+def pack_be24(value):
+    """
+    :param value: input value
+    :return: 24-bit big endian bytearray representation of the input value
+    """
+    _check_input_value(value, 24)
+    return bytearray(
+        [(value >> 16) & 0xFF,
          (value >> 8) & 0xFF,
          value & 0xFF])
 
@@ -87,6 +108,24 @@ def unpack_be32(data):
     """
     _check_input_array(data, 4)
     return data[3] + (data[2] << 8) + (data[1] << 16) + (data[0] << 24)
+
+
+def unpack_le24(data):
+    """
+    :param data: 24-bit little endian bytearray representation of an integer
+    :return: integer value
+    """
+    _check_input_array(data, 3)
+    return data[0] + (data[1] << 8) + (data[2] << 16)
+
+
+def unpack_be24(data):
+    """
+    :param data: 24-bit big endian bytearray representation of an integer
+    :return: integer value
+    """
+    _check_input_array(data, 3)
+    return data[2] + (data[1] << 8) + (data[0] << 16)
 
 
 def unpack_le16(data):
