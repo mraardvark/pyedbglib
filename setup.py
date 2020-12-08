@@ -50,6 +50,10 @@ with open(path.join(here, fname), 'w') as f:
     f.write("BUILD_DATE = '{}'\n".format(time.strftime("%Y-%m-%d %H:%M:%S %z")))
     f.close()
 
+# Read in requirements (dependencies) file
+with open('requirements.txt') as f:
+    install_requires = f.read()
+
 setup(
     name=name,
     version=version,
@@ -78,12 +82,7 @@ setup(
     packages=find_packages(exclude=['tests']),
 
     # List of packages required to use this package
-    install_requires=[
-        'cython<0.29.8;python_version<="2.7"', # To ensure there exists a wheel for win32/py27
-        'cython;python_version>="3"', # No requirements going forward
-        'hidapi',
-        'pyserial'
-    ],
+    install_requires=install_requires,
 
     # List of packages required to develop and test this package
     #   $ pip install pyedbglib[dev]
