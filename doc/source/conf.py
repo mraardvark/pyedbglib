@@ -37,6 +37,12 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+autodoc_mock_imports = []
+for mod in ['hidapi']:
+    try:
+        importlib.import_module(mod)
+    except ImportError:
+        autodoc_mock_imports.append(mod)
 
 # -- Options for HTML output -------------------------------------------------
 
