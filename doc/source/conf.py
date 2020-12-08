@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import importlib
 sys.path.insert(0, os.path.abspath('../../'))
 
 
@@ -38,7 +39,7 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 autodoc_mock_imports = []
-for mod in ['hidapi']:
+for mod in ['cython', 'hidapi', 'pyserial']:
     try:
         importlib.import_module(mod)
     except ImportError:
