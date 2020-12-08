@@ -64,7 +64,7 @@ def run_apidoc(app):
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module = os.path.join(cur_dir,"../../","pyedbglib")
-    main(['-o', cur_dir, module, '--templatedir', './_templates', '--force'])
+    main(['-T', '-o', cur_dir, module, '--templatedir', './_templates', '--force'])
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
