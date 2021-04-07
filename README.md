@@ -1,4 +1,6 @@
-# pyedbglib
+# pyedbglib (relocated)
+This repo has been superseded by: https://github.com/microchip-pic-avr-tools/pyedbglib
+
 pyedbglib is a low-level protocol library for communicating with Microchip CMSIS-DAP based debuggers
 
 It can be installed using pip:
